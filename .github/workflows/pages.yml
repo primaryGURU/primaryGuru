@@ -1,8 +1,9 @@
 name: Deploy site to GitHub Pages
 
-# Публикует два сайта из одного репозитория:
-#   /        -> landing/                      (новый лендинг «МатемАтелье»)
-#   /site/   -> всё остальное из репозитория  (primary.guru + любые новые папки с ресурсами)
+# Публикует всё из одного репозитория:
+#   /           -> landing/                      (лендинг «МатемАтелье»)
+#   /lessons/   -> lessons/*.html                (автономные интерактивные уроки)
+#   /site/      -> всё остальное из репозитория  (primary.guru + любые новые папки)
 #
 # Новая папка или файл в корне репозитория автоматически публикуется
 # по адресу /site/<путь> — править workflow для этого не нужно.
@@ -43,6 +44,10 @@ jobs:
           # лендинг — в корень сайта
           cp -R landing/. _site/
 
+          # автономные уроки — в /lessons/
+          mkdir -p _site/lessons
+          cp -R lessons/. _site/lessons/
+
           # старый сайт и любые будущие ресурсы — в /site/.
           # Исключаем только служебное: git, workflow и сам артефакт.
           tar -cf - \
@@ -50,6 +55,7 @@ jobs:
             --exclude=./.github \
             --exclude=./_site \
             --exclude=./landing \
+            --exclude=./lessons \
             . | tar -xf - -C _site/site
 
       - name: Upload artifact
