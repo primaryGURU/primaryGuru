@@ -1,24 +1,15 @@
 name: Deploy site to GitHub Pages
 
 # Публикует два сайта из одного репозитория:
-#   /          -> landing/   (новый лендинг «МатемАтелье»)
-#   /site/     -> старый сайт primary.guru (index.html, styles.css, img/, content/, checkList/)
+#   /        -> landing/                      (новый лендинг «МатемАтелье»)
+#   /site/   -> всё остальное из репозитория  (primary.guru + любые новые папки с ресурсами)
+#
+# Новая папка или файл в корне репозитория автоматически публикуется
+# по адресу /site/<путь> — править workflow для этого не нужно.
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'landing/**'
-      - 'index.html'
-      - 'interactivePage.html'
-      - 'script.js'
-      - 'scriptPage.js'
-      - 'styles.css'
-      - 'stylesPage.css'
-      - 'img/**'
-      - 'content/**'
-      - 'checkList/**'
-      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -48,11 +39,18 @@ jobs:
           set -euo pipefail
           rm -rf _site
           mkdir -p _site/site
-          # лендинг — в корень
+
+          # лендинг — в корень сайта
           cp -R landing/. _site/
-          # старый сайт — в /site/ (все пути в нём относительные, подпапка работает)
-          cp -R index.html interactivePage.html script.js scriptPage.js \
-                styles.css stylesPage.css img content checkList _site/site/
+
+          # старый сайт и любые будущие ресурсы — в /site/.
+          # Исключаем только служебное: git, workflow и сам артефакт.
+          tar -cf - \
+            --exclude=./.git \
+            --exclude=./.github \
+            --exclude=./_site \
+            --exclude=./landing \
+            . | tar -xf - -C _site/site
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
