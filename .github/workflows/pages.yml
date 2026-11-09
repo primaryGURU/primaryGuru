@@ -1,10 +1,23 @@
-name: Deploy landing to GitHub Pages
+name: Deploy site to GitHub Pages
+
+# Публикует два сайта из одного репозитория:
+#   /          -> landing/   (новый лендинг «МатемАтелье»)
+#   /site/     -> старый сайт primary.guru (index.html, styles.css, img/, content/, checkList/)
 
 on:
   push:
     branches: [main]
     paths:
       - 'landing/**'
+      - 'index.html'
+      - 'interactivePage.html'
+      - 'script.js'
+      - 'scriptPage.js'
+      - 'styles.css'
+      - 'stylesPage.css'
+      - 'img/**'
+      - 'content/**'
+      - 'checkList/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -30,10 +43,21 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site/site
+          # лендинг — в корень
+          cp -R landing/. _site/
+          # старый сайт — в /site/ (все пути в нём относительные, подпапка работает)
+          cp -R index.html interactivePage.html script.js scriptPage.js \
+                styles.css stylesPage.css img content checkList _site/site/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: landing
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
