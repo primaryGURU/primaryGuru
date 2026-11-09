@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="МатемАтелье — библиотека интерактивных уроков по математике для 3–5 классов. Автономные HTML-файлы: открывайте онлайн или скачивайте и работайте офлайн.">
+  <title>МатемАтелье — интерактивная библиотека уроков математики для 3–5 классов</title>
+
+  <!-- Шрифты: гротеск для UI + моноширинный для «чертёжных» подписей -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       ДИЗАЙН-ТОКЕНЫ (палитра blueprint / чертёж)
+       ========================================================= */
+    :root{
+      --bg:        #FFFFFF;   /* основной фон */
+      --bg-blue:   #F5F9FF;   /* светло-голубой фон секций */
+      --grid:      #D6E4F0;   /* линии миллиметровой сетки */
+      --ink:       #1E3A5F;   /* текст: тёмно-синий / графит */
+      --ink-soft:  #5B7695;   /* вторичный текст */
+      --accent:    #2563EB;   /* акцент: кнопки, ссылки, табы */
+      --accent-dk: #1D4ED8;
+      --card-bd:   #C9DAEC;   /* тонкие рамки карточек */
+      --radius:    10px;
+      --shadow:    0 6px 24px rgba(30,58,95,.07);
+      --font-ui:   'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+    }
+
+    *,*::before,*::after{ box-sizing:border-box; }
+    html{ scroll-behavior:smooth; }
+    body{
+      margin:0;
+      font-family:var(--font-ui);
+      color:var(--ink);
+      background:var(--bg);
+      line-height:1.6;
+      -webkit-font-smoothing:antialiased;
+    }
+    img,svg{ display:block; max-width:100%; }
+    a{ color:var(--accent); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+    h1,h2,h3{ line-height:1.25; margin:0 0 .5em; font-weight:800; }
+    p{ margin:0 0 1em; }
+
+    .container{ width:min(1140px, 92%); margin-inline:auto; }
+
+    /* Техническаяmono-подпись в духе чертежа: «ЧЕРТЁЖ 01 / МАСШТАБ 1:1» */
+    .tech-label{
+      font-family:var(--font-mono);
+      font-size:.72rem;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--accent);
+      display:inline-flex; align-items:center; gap:.6em;
+      margin-bottom:1rem;
+    }
+    .tech-label::before{
+      content:""; width:26px; height:1px; background:var(--accent);
+      position:relative; top:-1px;
+    }
+
+    /* Фиксация фокуса для доступности */
+    :focus-visible{ outline:2px dashed var(--accent); outline-offset:3px; border-radius:4px; }
+
+    /* Skip-link (доступность) */
+    .skip-link{
+      position:absolute; left:-999px; top:0; z-index:100;
+      background:var(--accent); color:#fff; padding:.6em 1.2em; border-radius:0 0 8px 0;
+    }
+    .skip-link:focus{ left:0; }
+
+    /* =========================================================
+       MILLIMETER GRID — фоновая «миллиметровка»
+       ========================================================= */
+    .mm-grid{
+      background-color:var(--bg-blue);
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        linear-gradient(rgba(214,228,240,.45) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(214,228,240,.45) 1px, transparent 1px);
+      background-size:100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    }
+
+    /* =========================================================
+       HEADER
+       ========================================================= */
+    .site-header{
+      position:sticky; top:0; z-index:50;
+      background:rgba(255,255,255,.92);
+      backdrop-filter:blur(6px);
+      border-bottom:1px solid var(--grid);
+    }
+    .header-inner{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:1.5rem; min-height:68px;
+    }
+    .logo{
+      display:flex; align-items:center; gap:.6rem;
+      font-weight:800; font-size:1.2rem; color:var(--ink);
+      letter-spacing:-.01em;
+    }
+    .logo:hover{ text-decoration:none; }
+    .logo-mark{
+      width:36px; height:36px; flex:none;
+      border:1.5px solid var(--accent); border-radius:8px;
+      display:grid; place-items:center;
+      color:var(--accent); background:#fff;
+    }
+    .logo span b{ color:var(--accent); font-weight:800; }
+    .logo .logo-sub{
+      display:block; font-family:var(--font-mono); font-weight:400;
+      font-size:.6rem; letter-spacing:.18em; text-transform:uppercase;
+      color:var(--ink-soft); margin-top:-2px;
+    }
+
+    .main-nav ul{ list-style:none; display:flex; gap:1.6rem; margin:0; padding:0; }
+    .main-nav a{
+      color:var(--ink); font-weight:600; font-size:.92rem;
+      padding:.3em 0; position:relative;
+    }
+    /* ховер-подчёркивание тонкой линией */
+    .main-nav a::after{
+      content:""; position:absolute; left:0; right:100%; bottom:-2px;
+      height:1.5px; background:var(--accent); transition:right .25s ease;
+    }
+    .main-nav a:hover{ text-decoration:none; }
+    .main-nav a:hover::after{ right:0; }
+
+    /* Кнопки */
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:.5em;
+      font-family:var(--font-ui); font-weight:700; font-size:.95rem;
+      padding:.72em 1.5em; border-radius:8px; cursor:pointer;
+      border:1.5px solid var(--accent); transition:all .2s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{ text-decoration:none; }
+    .btn-primary{ background:var(--accent); color:#fff; }
+    .btn-primary:hover{ background:var(--accent-dk); border-color:var(--accent-dk); box-shadow:0 4px 14px rgba(37,99,235,.28); }
+    .btn-secondary{ background:#fff; color:var(--accent); }
+    .btn-secondary:hover{ background:#EBF3FF; }
+    .btn-sm{ padding:.5em 1em; font-size:.85rem; }
+
+    /* Бургер-кнопка для мобильных */
+    .nav-toggle{
+      display:none; background:none; border:1.5px solid var(--card-bd);
+      border-radius:8px; padding:.45em .55em; cursor:pointer; color:var(--ink);
+    }
+
+    /* =========================================================
+       HERO
+       ========================================================= */
+    .hero{ position:relative; overflow:hidden; padding:6rem 0 5.5rem; }
+    .hero-inner{ position:relative; z-index:2; max-width:760px; }
+    .hero h1{
+      font-size:clamp(2.1rem, 4.6vw, 3.4rem);
+      letter-spacing:-.02em;
+    }
+    .hero h1 .u{
+      /* «размерное подчёркивание» под словом */
+      position:relative; color:var(--accent); white-space:nowrap;
+    }
+    .hero h1 .u::after{
+      content:""; position:absolute; left:0; right:0; bottom:-4px; height:2px;
+      background:var(--accent);
+    }
+    .hero h1 .u::before, .hero h1 .u::after{ box-shadow:none; }
+    .hero-lead{
+      font-size:1.13rem; color:var(--ink-soft); max-width:60ch; margin-bottom:2rem;
+    }
+    .hero-actions{ display:flex; gap:1rem; flex-wrap:wrap; }
+
+    /* Декоративный «чертёж» справа: оси координат + прямоугольник с размерными линиями */
+    .hero-drawing{
+      position:absolute; right:-40px; top:50%; transform:translateY(-50%);
+      width:min(440px, 38vw); aspect-ratio:1/1; z-index:1; opacity:.9;
+      pointer-events:none;
+    }
+    @media (max-width:1100px){ .hero-drawing{ display:none; } }
+
+    /* Угловые технические метки hero */
+    .hero-corner{
+      position:absolute; font-family:var(--font-mono); font-size:.65rem;
+      letter-spacing:.12em; color:var(--ink-soft); z-index:1;
+    }
+    .hero-corner.tl{ top:1.2rem; left:4%; }
+    .hero-corner.br{ bottom:1.2rem; right:4%; }
+
+    /* =========================================================
+       СЕКЦИИ (общее)
+       ========================================================= */
+    section{ padding:5rem 0; }
+    .section-head{ max-width:640px; margin-bottom:2.8rem; }
+    .section-head h2{ font-size:clamp(1.6rem, 3vw, 2.2rem); letter-spacing:-.015em; }
+    .section-head p{ color:var(--ink-soft); }
+
+    /* Пунктирный разделитель со «засечками», как на чертеже */
+    .divider{
+      border:none; border-top:1.5px dashed var(--grid); margin:0;
+    }
+
+    /* =========================================================
+       О ПРОЕКТЕ — карточки преимуществ
+       ========================================================= */
+    .features{
+      display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr));
+      gap:1.25rem;
+    }
+    .feature-card{
+      background:#fff; border:1px solid var(--card-bd); border-radius:var(--radius);
+      padding:1.6rem 1.4rem; position:relative;
+      transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .feature-card:hover{
+      transform:translateY(-3px); box-shadow:var(--shadow); border-color:var(--accent);
+    }
+    /* маленький угол-метка как на рамке чертежа */
+    .feature-card::before{
+      content:attr(data-no);
+      position:absolute; top:.9rem; right:1rem;
+      font-family:var(--font-mono); font-size:.68rem; color:var(--ink-soft);
+      letter-spacing:.1em;
+    }
+    .feature-icon{
+      width:44px; height:44px; border-radius:9px;
+      border:1.5px solid var(--accent); color:var(--accent);
+      display:grid; place-items:center; margin-bottom:1.1rem; background:#F5F9FF;
+    }
+    .feature-card h3{ font-size:1.05rem; font-weight:700; }
+    .feature-card p{ font-size:.92rem; color:var(--ink-soft); margin:0; }
+
+    /* =========================================================
+       КАК ПОЛЬЗОВАТЬСЯ — 3 шага
+       ========================================================= */
+    .steps{
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:1.25rem; counter-reset:step;
+    }
+    .step{
+      position:relative; padding:1.6rem 1.4rem 1.4rem;
+      border:1px solid var(--card-bd); border-radius:var(--radius); background:#fff;
+    }
+    /* соединительная линия между шагами */
+    .step:not(:last-child)::after{
+      content:""; position:absolute; top:50%; right:-1.25rem; width:1.25rem;
+      border-top:1.5px dashed var(--accent); opacity:.55;
+    }
+    @media (max-width:900px){ .step:not(:last-child)::after{ display:none; } }
+    .step-num{
+      font-family:var(--font-mono); font-weight:600; font-size:.8rem;
+      color:var(--accent); border:1.5px solid var(--accent); border-radius:50%;
+      width:34px; height:34px; display:grid; place-items:center; margin-bottom:1rem;
+      background:#fff;
+    }
+    .step h3{ font-size:1.02rem; }
+    .step p{ font-size:.9rem; color:var(--ink-soft); margin:0; }
+
+    /* =========================================================
+       КАК УСТРОЕН УРОК — конвейер
+       ========================================================= */
+    .pipeline{
+      display:flex; flex-wrap:wrap; gap:.8rem; align-items:stretch;
+    }
+    .pipe-item{
+      flex:1 1 200px; display:flex; align-items:center; gap:.8rem;
+      border:1px solid var(--card-bd); border-radius:var(--radius);
+      background:#fff; padding:1rem 1.1rem;
+    }
+    .pipe-item .p-ico{ color:var(--accent); flex:none; }
+    .pipe-item strong{ display:block; font-size:.95rem; }
+    .pipe-item small{ color:var(--ink-soft); font-size:.8rem; }
+    .pipe-arrow{
+      align-self:center; color:var(--accent); font-family:var(--font-mono);
+      font-size:1.1rem; flex:none;
+    }
+    @media (max-width:760px){ .pipe-arrow{ display:none; } }
+
+    /* =========================================================
+       КАТАЛОГ РЕСУРСОВ
+       ========================================================= */
+    #catalog{ scroll-margin-top:80px; }
+
+    /* Сегментированный переключатель классов */
+    .grade-switch{
+      display:inline-flex; gap:.3rem; padding:.35rem;
+      background:#fff; border:1px solid var(--card-bd); border-radius:12px;
+      margin-bottom:2.2rem; max-width:100%; overflow-x:auto;
+      scrollbar-width:thin;
+    }
+    .grade-btn{
+      font-family:var(--font-mono); font-size:.85rem; font-weight:600;
+      color:var(--ink-soft); background:transparent; cursor:pointer;
+      border:1px solid transparent; border-radius:8px;
+      padding:.6em 1.3em; transition:all .2s ease; white-space:nowrap;
+    }
+    .grade-btn:hover{ color:var(--accent); background:#F0F6FF; }
+    .grade-btn[aria-selected="true"]{
+      color:#fff; background:var(--accent); border-color:var(--accent);
+      box-shadow:0 3px 10px rgba(37,99,235,.25);
+    }
+
+    /* Панель класса */
+    .grade-panel[hidden]{ display:none; }
+    .grade-meta{
+      font-family:var(--font-mono); font-size:.72rem; letter-spacing:.12em;
+      color:var(--ink-soft); text-transform:uppercase; margin-bottom:1.2rem;
+    }
+
+    /* Сетка карточек ресурсов */
+    .resource-grid{
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+      gap:1.25rem;
+    }
+    .resource-card{
+      display:flex; flex-direction:column;
+      background:#fff; border:1px solid var(--card-bd); border-radius:var(--radius);
+      padding:1.4rem 1.3rem 1.2rem;
+      transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+      animation:fadeIn .4s ease both;
+    }
+    @keyframes fadeIn{
+      from{ opacity:0; transform:translateY(10px); }
+      to  { opacity:1; transform:none; }
+    }
+    @media (prefers-reduced-motion:reduce){
+      .resource-card{ animation:none; }
+      html{ scroll-behavior:auto; }
+    }
+    .resource-card:hover{
+      transform:translateY(-3px); box-shadow:var(--shadow); border-color:var(--accent);
+    }
+    .tag{
+      align-self:flex-start;
+      font-family:var(--font-mono); font-size:.66rem; font-weight:600;
+      letter-spacing:.1em; text-transform:uppercase;
+      padding:.32em .7em; border-radius:5px; margin-bottom:.9rem;
+      border:1px solid;
+    }
+    .tag-paragraph{ color:var(--accent); border-color:#BFDBFE; background:#EFF6FF; }
+    .tag-task     { color:#0E7490; border-color:#A5E3F0; background:#ECFEFF; }
+    .tag-hard     { color:#9D174D; border-color:#FBCFE8; background:#FDF2F8; }
+    .resource-card h3{ font-size:1.03rem; font-weight:700; margin-bottom:.4rem; }
+    .resource-card .desc{
+      font-size:.87rem; color:var(--ink-soft); margin-bottom:1.2rem; flex-grow:1;
+    }
+    .card-actions{ display:flex; gap:.6rem; }
+    .card-actions .btn{ flex:1; }
+
+    /* =========================================================
+       FOOTER
+       ========================================================= */
+    .site-footer{
+      background:var(--ink); color:#C7D6E8; padding:3.2rem 0 2rem;
+      font-size:.9rem;
+    }
+    .footer-grid{
+      display:flex; flex-wrap:wrap; gap:2rem; justify-content:space-between;
+      align-items:flex-start; margin-bottom:2.2rem;
+    }
+    .site-footer .logo{ color:#fff; }
+    .site-footer .logo .logo-mark{ border-color:#fff; color:#fff; background:transparent; }
+    .site-footer a{ color:#9EC1F0; }
+    .site-footer a:hover{ color:#fff; }
+    .footer-contacts p{ margin:.2em 0; }
+    .footer-bottom{
+      border-top:1px solid rgba(255,255,255,.15); padding-top:1.4rem;
+      display:flex; flex-wrap:wrap; gap:1rem; justify-content:space-between;
+      font-family:var(--font-mono); font-size:.72rem; letter-spacing:.08em;
+      color:#8FA9C4;
+    }
+
+    /* =========================================================
+       АДАПТИВНОСТЬ
+       ========================================================= */
+    @media (max-width:860px){
+      .main-nav{
+        position:absolute; top:100%; left:0; right:0;
+        background:#fff; border-bottom:1px solid var(--grid);
+        display:none; padding:1rem 4%;
+      }
+      .main-nav.open{ display:block; }
+      .main-nav ul{ flex-direction:column; gap:.4rem; }
+      .main-nav a{ display:block; padding:.55em 0; }
+      .nav-toggle{ display:inline-flex; }
+      .header-cta{ display:none; } /* CTA дублируется в меню ниже */
+      .hero{ padding:4rem 0 3.5rem; }
+      section{ padding:3.5rem 0; }
+    }
+    @media (max-width:560px){
+      .resource-grid{ grid-template-columns:1fr; }
+      .features{ grid-template-columns:1fr; }
+      .card-actions{ flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+
+  <a class="skip-link" href="#catalog">Перейти к ресурсам</a>
+
+  <!-- ================= HEADER ================= -->
+  <header class="site-header">
+    <div class="container header-inner">
+
+      <!-- Логотип проекта -->
+      <a href="#top" class="logo" aria-label="МатемАтелье — на главную">
+        <span class="logo-mark" aria-hidden="true">
+          <!-- контурная иконка: циркуль -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M10.5 6.8 6 20"/><path d="M13.5 6.8 18 20"/><path d="M7.5 15.5c3-1.5 6-1.5 9 0"/></svg>
+        </span>
+        <span>Матем<b>Ателье</b><span class="logo-sub">чертёж знаний · 3–5 класс</span></span>
+      </a>
+
+      <!-- Навигация-якоря -->
+      <nav class="main-nav" id="main-nav" aria-label="Основная навигация">
+        <ul>
+          <li><a href="#about">О проекте</a></li>
+          <li><a href="#how">Как пользоваться</a></li>
+          <li><a href="#catalog">Ресурсы</a></li>
+          <li><a href="#contacts">Контакты</a></li>
+          <li class="menu-cta-only"><a href="#catalog" class="btn btn-primary btn-sm" style="margin-top:.6em;">Начать обучение</a></li>
+        </ul>
+      </nav>
+
+      <a href="#catalog" class="btn btn-primary btn-sm header-cta">Начать обучение</a>
+
+      <!-- Бургер (мобильные) -->
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Открыть меню">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ================= HERO ================= -->
+    <section class="hero mm-grid" aria-labelledby="hero-title">
+      <span class="hero-corner tl" aria-hidden="true">ЛИСТ 01 · МАСШТАБ 1:1</span>
+      <span class="hero-corner br" aria-hidden="true">ГОСТ 2.301-68 · FMT-2026</span>
+
+      <div class="container hero-inner">
+        <p class="tech-label">Интерактивная библиотека · 3–5 классы</p>
+        <h1 id="hero-title">Математика — по <span class="u">чертежу</span>, шаг за шагом</h1>
+        <p class="hero-lead">
+          Каждый параграф, задача и сложная тема — это отдельный интерактивный
+          HTML-урок. Разобранный по шагам, с подсказками и проверкой. Открывайте
+          прямо в браузере или скачайте и занимайтесь офлайн.
+        </p>
+        <div class="hero-actions">
+          <a href="#catalog" class="btn btn-primary">Смотреть ресурсы</a>
+          <a href="#how" class="btn btn-secondary">Как это работает</a>
+        </div>
+      </div>
+
+      <!-- Декоративный чертёж: оси координат + прямоугольник с размерными линиями -->
+      <svg class="hero-drawing" viewBox="0 0 400 400" fill="none" aria-hidden="true">
+        <!-- оси -->
+        <line x1="40" y1="360" x2="380" y2="360" stroke="#2563EB" stroke-width="1.4"/>
+        <line x1="40" y1="360" x2="40" y2="20" stroke="#2563EB" stroke-width="1.4"/>
+        <path d="M372 355l8 5-8 5z" fill="#2563EB"/>
+        <path d="M35 28l5-8 5 8z" fill="#2563EB"/>
+        <!-- засечки на осях -->
+        <g stroke="#2563EB" stroke-width="1.1" opacity=".55">
+          <line x1="100" y1="356" x2="100" y2="364"/><line x1="160" y1="356" x2="160" y2="364"/>
+          <line x1="220" y1="356" x2="220" y2="364"/><line x1="280" y1="356" x2="280" y2="364"/>
+          <line x1="36" y1="300" x2="44" y2="300"/><line x1="36" y1="240" x2="44" y2="240"/>
+          <line x1="36" y1="180" x2="44" y2="180"/><line x1="36" y1="120" x2="44" y2="120"/>
+        </g>
+        <!-- «карточка урока» на чертеже -->
+        <rect x="90" y="90" width="230" height="180" rx="10" fill="#FFFFFF" stroke="#1E3A5F" stroke-width="1.4"/>
+        <line x1="90" y1="132" x2="320" y2="132" stroke="#D6E4F0" stroke-width="1.2"/>
+        <rect x="106" y="104" width="70" height="14" rx="4" fill="#EFF6FF" stroke="#2563EB" stroke-width="1"/>
+        <line x1="106" y1="156" x2="284" y2="156" stroke="#1E3A5F" stroke-width="1.4" opacity=".7"/>
+        <line x1="106" y1="176" x2="256" y2="176" stroke="#5B7695" stroke-width="1.1" opacity=".5"/>
+        <line x1="106" y1="192" x2="268" y2="192" stroke="#5B7695" stroke-width="1.1" opacity=".5"/>
+        <rect x="106" y="216" width="84" height="30" rx="7" fill="#2563EB"/>
+        <rect x="202" y="216" width="84" height="30" rx="7" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.4"/>
+        <!-- размерные линии -->
+        <g stroke="#2563EB" stroke-width="1" opacity=".8">
+          <line x1="90" y1="300" x2="320" y2="300"/>
+          <line x1="90" y1="294" x2="90" y2="306"/><line x1="320" y1="294" x2="320" y2="306"/>
+          <line x1="352" y1="90" x2="352" y2="270"/>
+          <line x1="346" y1="90" x2="358" y2="90"/><line x1="346" y1="270" x2="358" y2="270"/>
+        </g>
+        <text x="190" y="318" font-family="JetBrains Mono, monospace" font-size="12" fill="#2563EB">230 мм</text>
+        <text x="336" y="60" font-family="JetBrains Mono, monospace" font-size="12" fill="#2563EB">R = 10</text>
+        <!-- выносная окружность-«узел» -->
+        <circle cx="320" cy="90" r="5" fill="#fff" stroke="#2563EB" stroke-width="1.4"/>
+      </svg>
+    </section>
+
+    <!-- ================= О ПРОЕКТЕ ================= -->
+    <section id="about" aria-labelledby="about-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="tech-label">Раздел 02 · Преимущества</p>
+          <h2 id="about-title">О проекте</h2>
+          <p>Библиотека собрана по принципу инженерной документации: минимум лишнего, максимум точности — каждый урок ведёт от условия к ответу.</p>
+        </div>
+
+        <div class="features">
+          <article class="feature-card" data-no="01">
+            <span class="feature-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4z"/><path d="M4 7l2-3h12l2 3"/><path d="M9 12h6"/></svg>
+            </span>
+            <h3>Автономные HTML-файлы</h3>
+            <p>Каждый урок — один файл, который открывается в любом браузере и полностью работает без интернета.</p>
+          </article>
+
+          <article class="feature-card" data-no="02">
+            <span class="feature-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 12 4l8 16"/><path d="M8 13h8"/><path d="M6.5 16.5h11"/></svg>
+            </span>
+            <h3>Разбор по шагам</h3>
+            <p>Сложные темы раскладываются на последовательные шаги — как чертёж: от базовой линии до готовой детали.</p>
+          </article>
+
+          <article class="feature-card" data-no="03">
+            <span class="feature-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 1 3.6 10.8c-.7.6-1.1 1.3-1.3 2.2H9.7c-.2-.9-.6-1.6-1.3-2.2A6 6 0 0 1 12 3z"/></svg>
+            </span>
+            <h3>Задачи с подсказками</h3>
+            <p>Наводящие вопросы вместо готового ответа и полный разбор решения — ученик доходит сам, но не застревает.</p>
+          </article>
+
+          <article class="feature-card" data-no="04">
+            <span class="feature-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>
+            </span>
+            <h3>Онлайн или офлайн</h3>
+            <p>Откройте урок по ссылке в новой вкладке или скачайте файл на компьютер — как удобнее для класса и дома.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider container" style="width:92%;">
+
+    <!-- ================= КАК ПОЛЬЗОВАТЬСЯ ================= -->
+    <section id="how" class="mm-grid" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="tech-label">Раздел 03 · Инструкция</p>
+          <h2 id="how-title">Как пользоваться</h2>
+          <p>Три действия — и урок перед вами. Никакой регистрации и установки программ.</p>
+        </div>
+
+        <div class="steps">
+          <article class="step">
+            <span class="step-num" aria-hidden="true">01</span>
+            <h3>Выбери класс</h3>
+            <p>Переключите таб в каталоге: 3, 4 или 5 класс — покажутся только подходящие темы.</p>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">02</span>
+            <h3>Найди тему</h3>
+            <p>Параграф учебника, конкретная задача или сложная тема — тип указан тегом на карточке.</p>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">03</span>
+            <h3>Открой или скачай</h3>
+            <p>Кнопка «Открыть» запустит урок в браузере, «Скачать» сохранит автономный HTML-файл.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= КАТАЛОГ РЕСУРСОВ ================= -->
+    <section id="catalog" class="mm-grid" style="padding-top:0;" aria-labelledby="catalog-title">
+      <div class="container">
+        <div class="section-head" style="padding-top:3rem;">
+          <p class="tech-label">Раздел 04 · Каталог</p>
+          <h2 id="catalog-title">Библиотека ресурсов</h2>
+          <p>Демо-карточки. Замените ссылки-заглушки <code style="font-family:var(--font-mono); font-size:.85em; background:#EFF6FF; padding:.1em .4em; border-radius:4px;">#</code> на пути к реальным файлам уроков.</p>
+        </div>
+
+        <!-- Переключатель классов: роль tablist для доступности -->
+        <div class="grade-switch" role="tablist" aria-label="Выбор класса">
+          <button class="grade-btn" role="tab" id="tab-g3" aria-controls="panel-g3" aria-selected="true"  data-grade="g3">3 класс</button>
+          <button class="grade-btn" role="tab" id="tab-g4" aria-controls="panel-g4" aria-selected="false" data-grade="g4" tabindex="-1">4 класс</button>
+          <button class="grade-btn" role="tab" id="tab-g5" aria-controls="panel-g5" aria-selected="false" data-grade="g5" tabindex="-1">5 класс</button>
+        </div>
+
+        <!--
+          =============================================================
+          КАК ПОДКЛЮЧИТЬ РЕАЛЬНЫЕ ФАЙЛЫ:
+          в каждой карточке замените href="#" на путь к уроку, например:
+            href="/resources/g3/umnozhenie-dvuznachnogo.html"
+          Кнопка «Скачать» берёт тот же файл через атрибут download.
+          Кнопка «Открыть» — target="_blank" rel="noopener".
+          =============================================================
+        -->
+
+        <!-- ===== 3 КЛАСС ===== -->
+        <div class="grade-panel" id="panel-g3" role="tabpanel" aria-labelledby="tab-g3">
+          <p class="grade-meta">Лист 4.1 · 3 класс · тем в разделе: 4</p>
+          <div class="resource-grid">
+
+            <article class="resource-card">
+              <span class="tag tag-paragraph">Параграф</span>
+              <h3>Табличное умножение и деление</h3>
+              <p class="desc">Интерактивная таблица Пифагора: тренажёр с подсказками и быстрым контролем.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="umnozhenie-3klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-task">Задача</span>
+              <h3>Задачи на движение</h3>
+              <p class="desc">Скорость, время, расстояние: схема-чертёж помогает увидеть задачу целиком.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="zadachi-na-dvizhenie-3klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-hard">Сложная тема</span>
+              <h3>Доли и части</h3>
+              <p class="desc">От пиццы до числовой прямой: как появились ½, ¼, ⅓ и что они значат.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="doli-chasti-3klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-paragraph">Параграф</span>
+              <h3>Периметр и площадь</h3>
+              <p class="desc">Формулы растут из клетки: считаем по клетчатому листу и проверяем себя.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="perimetr-ploshchad-3klass.html">Скачать</a>
+              </div>
+            </article>
+
+          </div>
+        </div>
+
+        <!-- ===== 4 КЛАСС ===== -->
+        <div class="grade-panel" id="panel-g4" role="tabpanel" aria-labelledby="tab-g4" hidden>
+          <p class="grade-meta">Лист 4.2 · 4 класс · тем в разделе: 4</p>
+          <div class="resource-grid">
+
+            <article class="resource-card">
+              <span class="tag tag-hard">Сложная тема</span>
+              <h3>Умножение многозначных чисел</h3>
+              <p class="desc">Столбик по шагам: раскладка разрядов, переносы и самопроверка оценки.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="umnozhenie-mnogoznachnyh-4klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-paragraph">Параграф</span>
+              <h3>Деление с остатком</h3>
+              <p class="desc">Когда предметы нельзя поделить поровну: алгоритм и проверка через × и +.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="delenie-s-ostatom-4klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-task">Задача</span>
+              <h3>Задачи на стоимость</h3>
+              <p class="desc">Цена, количество, стоимость: строим таблицу-чертёж и решаем в два действия.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="zadachi-na-stoimost-4klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-paragraph">Параграф</span>
+              <h3>Единицы измерения величины</h3>
+              <p class="desc">Км, м, см; кг и тонны, часы: переводим единицы по «лесенке разрядов».</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="edinicy-izmereniya-4klass.html">Скачать</a>
+              </div>
+            </article>
+
+          </div>
+        </div>
+
+        <!-- ===== 5 КЛАСС ===== -->
+        <div class="grade-panel" id="panel-g5" role="tabpanel" aria-labelledby="tab-g5" hidden>
+          <p class="grade-meta">Лист 4.3 · 5 класс · тем в разделе: 4</p>
+          <div class="resource-grid">
+
+            <article class="resource-card">
+              <span class="tag tag-hard">Сложная тема</span>
+              <h3>Обыкновенные дроби</h3>
+              <p class="desc">Числитель, знаменатель, сравнение — на круговых диаграммах и числовом луче.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="obyknovennye-drobi-5klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-paragraph">Параграф</span>
+              <h3>Десятичные дроби</h3>
+              <p class="desc">Запятая под контролем: разряды, сравнение и округление до нужного класса.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="desyatichnye-drobi-5klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-task">Задача</span>
+              <h3>Проценты на практике</h3>
+              <p class="desc">Скидки, растворы, урожай: 1% — это сотая доля, и всё складывается в схему.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="procenty-5klass.html">Скачать</a>
+              </div>
+            </article>
+
+            <article class="resource-card">
+              <span class="tag tag-paragraph">Параграф</span>
+              <h3>Координаты и луч</h3>
+              <p class="desc">Координатная плоскость, четверти, построение фигур по точкам — как по чертежу.</p>
+              <div class="card-actions">
+                <a class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener">Открыть</a>
+                <a class="btn btn-secondary btn-sm" href="#" download="koordinaty-luch-5klass.html">Скачать</a>
+              </div>
+            </article>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= КАК УСТРОЕН УРОК ================= -->
+    <section id="structure" aria-labelledby="structure-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="tech-label">Раздел 05 · Конструкция</p>
+          <h2 id="structure-title">Как устроен урок</h2>
+          <p>Каждый HTML-ресурс собран по одной схеме — ученик всегда понимает, где он находится.</p>
+        </div>
+
+        <div class="pipeline">
+          <div class="pipe-item">
+            <span class="p-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h6"/></svg></span>
+            <div><strong>Теория</strong><small>коротко: правило и пример записи</small></div>
+          </div>
+          <span class="pipe-arrow" aria-hidden="true">→</span>
+          <div class="pipe-item">
+            <span class="p-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>
+            <div><strong>Разбор примера</strong><small>решение по шагам с пояснениями</small></div>
+          </div>
+          <span class="pipe-arrow" aria-hidden="true">→</span>
+          <div class="pipe-item">
+            <span class="p-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/><circle cx="12" cy="12" r="9"/></svg></span>
+            <div><strong>Задания</strong><small>интерактив с подсказками</small></div>
+          </div>
+          <span class="pipe-arrow" aria-hidden="true">→</span>
+          <div class="pipe-item">
+            <span class="p-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg></span>
+            <div><strong>Проверка</strong><small>итоговый мини-тест и ответы</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="site-footer" id="contacts">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a href="#top" class="logo" aria-label="МатемАтелье — наверх">
+            <span class="logo-mark" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M10.5 6.8 6 20"/><path d="M13.5 6.8 18 20"/><path d="M7.5 15.5c3-1.5 6-1.5 9 0"/></svg>
+            </span>
+            <span>Матем<b style="color:#9EC1F0;">Ателье</b></span>
+          </a>
+          <p style="max-width:34ch; margin-top:.8rem; color:#9FB6CC;">Интерактивные уроки математики для 3–5 классов. Точно, по шагам, офлайн.</p>
+        </div>
+
+        <!-- Контакты: замените e-mail на реальный -->
+        <div class="footer-contacts">
+          <h3 style="color:#fff; font-size:1rem;">Контакты</h3>
+          <p>Для учителей и родителей:</p>
+          <p><a href="mailto:hello@matematelie.ru">hello@matematelie.ru</a></p>
+        </div>
+
+        <div>
+          <h3 style="color:#fff; font-size:1rem;">Документы</h3>
+          <p><a href="#">Политика конфиденциальности</a></p>
+          <p><a href="#">Пользовательское соглашение</a></p>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© 2026 МАТЕМАТЕЛЬЕ · ВСЕ ПРАВА ЗАЩИЩЕНЫ</span>
+        <span>ЧЕРТЁЖ ВЫПОЛНИЛ: КОМАНДА ПРОЕКТА · ЛИСТ 01 ИЗ 01</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    /* ===========================================================
+       1. ПЕРЕКЛЮЧАТЕЛЬ КЛАССОВ (табы) — чистый JS
+       - состояние выбранного класса сохраняется в localStorage;
+       - поддержка клавиатуры (стрелки влево/вправо) по ARIA-паттерну.
+       =========================================================== */
+    (function () {
+      const STORAGE_KEY = 'matematelie.grade';
+      const tabs   = Array.from(document.querySelectorAll('.grade-btn'));
+      const panels = { g3: 'panel-g3', g4: 'panel-g4', g5: 'panel-g5' };
+
+      function selectGrade(grade, focusTab) {
+        tabs.forEach(tab => {
+          const active = tab.dataset.grade === grade;
+          tab.setAttribute('aria-selected', String(active));
+          tab.tabIndex = active ? 0 : -1;
+          if (active && focusTab) tab.focus();
+        });
+        Object.entries(panels).forEach(([g, id]) => {
+          const panel = document.getElementById(id);
+          panel.hidden = g !== grade;
+          // мягкое появление карточек при смене класса: перезапуск анимации
+          if (g === grade) {
+            panel.querySelectorAll('.resource-card').forEach((card, i) => {
+              card.style.animation = 'none';
+              void card.offsetWidth;                 // reflow для перезапуска
+              card.style.animation = `fadeIn .4s ease ${i * 0.05}s both`;
+            });
+          }
+        });
+        try { localStorage.setItem(STORAGE_KEY, grade); } catch (e) { /* приватный режим */ }
+      }
+
+      tabs.forEach((tab, idx) => {
+        tab.addEventListener('click', () => selectGrade(tab.dataset.grade, false));
+        tab.addEventListener('keydown', (e) => {
+          let dir = 0;
+          if (e.key === 'ArrowRight') dir =  1;
+          if (e.key === 'ArrowLeft')  dir = -1;
+          if (!dir) return;
+          e.preventDefault();
+          const next = tabs[(idx + dir + tabs.length) % tabs.length];
+          selectGrade(next.dataset.grade, true);
+        });
+      });
+
+      // Восстановление последнего выбранного класса
+      let saved = null;
+      try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+      selectGrade(saved && panels[saved] ? saved : 'g3', false);
+    })();
+
+    /* ===========================================================
+       2. МОБИЛЬНОЕ МЕНЮ (бургер)
+       =========================================================== */
+    (function () {
+      const toggle = document.getElementById('nav-toggle');
+      const nav    = document.getElementById('main-nav');
+      toggle.addEventListener('click', () => {
+        const open = nav.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.setAttribute('aria-label', open ? 'Закрыть меню' : 'Открыть меню');
+      });
+      // закрытие после перехода по якорю
+      nav.addEventListener('click', (e) => {
+        if (e.target.closest('a')) {
+          nav.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
+  </script>
+
+  <style>
+    /* CTA внутри мобильного меню показываем только там */
+    @media (min-width:861px){ .menu-cta-only{ display:none; } }
+  </style>
+</body>
+</html>
